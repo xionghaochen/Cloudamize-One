@@ -100,10 +100,10 @@ def connect_db(host1, dbname1, port1, user1, password1,host2, dbname2, port2, us
         cursor2.execute('select count(*) from information_schema.columns where table_name=\'%s\''%t)
         c_columns=cursor2.fetchall()
         
-        cursor1.execute('select column_name,data_type from information_schema.columns where table_name=\'%s\''%t)
+        cursor2.execute('select column_name,data_type from information_schema.columns where table_name=\'%s\''%t)
         c_columns_infor=cursor2.fetchall()
         
-        if schema_compare(s_columns,s_columns_infor,c_columns,c_columns_infor):
+        if schema_compare(t,s_columns,s_columns_infor,c_columns,c_columns_infor):
             print('\nPlease enter a query: ')
             db_q=input()
             if db_q!='':
@@ -119,7 +119,7 @@ def connect_db(host1, dbname1, port1, user1, password1,host2, dbname2, port2, us
                 cursor2.execute('%s'%db_q)
                 c_data=cursor2.fetchall()
                 
-                select_compare(s_data,s_colnames,c_data,c_colnames)
+                select_compare(dbname1,s_data,s_colnames,dbname2,c_data,c_colnames)
                 
             else:
                 print('\nWrong query')
@@ -129,18 +129,17 @@ def connect_db(host1, dbname1, port1, user1, password1,host2, dbname2, port2, us
         print('\nWrong choice!')
 
 
-def schema_compare(s_columns,s_columns_infor,c_columns,c_columns_infor):
+def schema_compare(t,s_columns,s_columns_infor,c_columns,c_columns_infor):
         
     x,i,count,sign=0,0,0,0
-    
+     
     if c_columns!=s_columns:
-        print('\nThe number of columns are not match!')
+        print('The number of columns are not match!\n')
         return False
     else:
         while x<len(s_columns_infor):
             while i<len(c_columns_infor):
                 while count<len(c_columns_infor[0]):
-#                     print('x=',x,'count=',count)
                     if s_columns_infor[x][count]==c_columns_infor[i][count]:
                         break
                     else:
@@ -148,28 +147,35 @@ def schema_compare(s_columns,s_columns_infor,c_columns,c_columns_infor):
                 if s_columns_infor[x][count]==c_columns_infor[i][count] and (count+1)<len(c_columns_infor[0]):
                     count=count+1
                 elif s_columns_infor[x][count]==c_columns_infor[i][count] and (count+1)>=len(c_columns_infor[0]):
-                    i=0
-                    count=0
-                    break
-                else:
-                    if(i+1)<len(c_columns_infor):
-                        i=i+1
-                    else:
-                        print('\nThere is no match record in compared table which is ',s_columns_infor[x])
-                        sign=sign+1
+                    if (x+1)<len(s_columns_infor):
+                        x=x+1
                         i=0
                         count=0
-                        break
-            if(x+1)<len(s_columns_infor):
-                x=x+1
-            else:
-                if sign==0:
-                    print('\nThe schema of those two tables are matching')
-                    return True
-                else:
-                    return False
+                    else:
+                        if sign==0:
+                            print('\nThe schema of table \'%s\' in those two databases are completely matching'%t)
+                            return True
+                        else:
+                            return False
+                elif s_columns_infor[x][count]!=c_columns_infor[i][count]:
+                    if (i+1)<len(c_columns_infor):
+                        i=i+1
+                        count=0
+                    else:
+                        print('\nThere is no match column in compared table which is ',s_columns_infor[x])
+                        sign=sign+1
+                        if (x+1)<len(s_columns_infor):
+                            x=x+1
+                            i=0
+                            count=0
+                        else:
+                            if sign==0:
+                                print('\nThe schema of table \'%s\' in those two databases are completely matching'%t)
+                                return True
+                            else:
+                                return False
                 
-def select_compare(s_data,s_colnames,c_data,c_colnames):
+def select_compare(dbname1,s_data,s_colnames,dbname2,c_data,c_colnames):
     
     x,i,sign,s_count,c_count=0,0,0,0,0
     
@@ -204,7 +210,7 @@ def select_compare(s_data,s_colnames,c_data,c_colnames):
                                 break
                             else:
                                 sign=sign+1
-                                print('\nFor compared database, there is no matching record: ',s_data[x])
+                                print('\nFor database %r, there is no matching record: %r'%(dbname2,s_data[x]))
                                 break
                         else:
                             c_count=c_count+1
@@ -239,7 +245,7 @@ def select_compare(s_data,s_colnames,c_data,c_colnames):
                                 s_count,c_count=0,0
                 else:
                     if sign==0:
-                        print('\nFor standard database, those two tables might be matching')
+                        print('\nFor database %r, those two tables might be matching'%dbname1)
                         break
                     else:
                         break
@@ -272,7 +278,7 @@ def select_compare(s_data,s_colnames,c_data,c_colnames):
                                 break
                             else:
                                 sign=sign+1
-                                print('\nFor standard database, there is no matching record:',c_data[i])
+                                print('\nFor database %r, there is no matching record: %r'%(dbname1,c_data[i]))
                                 break
                         else:
                             s_count=s_count+1
@@ -307,7 +313,7 @@ def select_compare(s_data,s_colnames,c_data,c_colnames):
                                 s_count,c_count=0,0
                 else:
                     if sign==0:
-                        print('\nFor compared database, those two tables might be matching')
+                        print('\nFor database %r, those two tables might be matching'%dbname2)
                         break
                     else:
                         break
